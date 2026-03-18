@@ -1,4 +1,3 @@
-https://ai.studio/apps/08879aa8-f2b0-404c-a5c7-f0b7b638f574
 🩺 CareSync
 
 CareSync is a smart caregiver assistant that helps families remotely manage the health of their loved ones. It sends timely reminders for medications, doctor visits, and daily activities, while allowing users to confirm completion with a single tap.

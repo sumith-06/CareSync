@@ -1,0 +1,114 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // ===============================================================
+    // Assumed Data Model
+    // ===============================================================
+    //
+    // Collection: users
+    // Document ID: {userId}
+    // Fields:
+    //   - uid: string (required) - immutable
+    //   - role: string (required, 'caregiver' or 'elderly') - immutable
+    //   - name: string (required)
+    //   - email: string (required)
+    //   - caregiverId: string (optional)
+    //
+    // Collection: tasks
+    // Document ID: {taskId}
+    // Fields:
+    //   - caregiverId: string (required) - immutable
+    //   - elderlyId: string (required) - immutable
+    //   - title: string (required)
+    //   - type: string (required, 'medicine', 'appointment', 'activity')
+    //   - scheduledTime: string (required)
+    //   - status: string (required, 'pending', 'completed', 'missed')
+    //   - completedAt: string (optional)
+    //   - dosage: string (optional)
+    //   - instructions: string (optional)
+    //
+    // ===============================================================
+
+    // Helper Functions
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return isAuthenticated() && request.auth.uid == userId;
+    }
+
+    function hasOnlyAllowedFields(fields) {
+      return request.resource.data.keys().hasOnly(fields);
+    }
+
+    function hasRequiredFields(fields) {
+      return request.resource.data.keys().hasAll(fields);
+    }
+
+    function isValidEmail(email) {
+      return email is string && email.matches("^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}$");
+    }
+
+    function isValidDateString(dateStr) {
+      return dateStr is string && dateStr.matches("^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}.*Z?$");
+    }
+
+    function isValidUser(data) {
+      return hasOnlyAllowedFields(['uid', 'role', 'name', 'email', 'caregiverId']) &&
+             hasRequiredFields(['uid', 'role', 'name', 'email']) &&
+             data.uid is string && data.uid.size() > 0 && data.uid.size() < 100 &&
+             data.role in ['caregiver', 'elderly'] &&
+             data.name is string && data.name.size() > 0 && data.name.size() < 100 &&
+             isValidEmail(data.email) &&
+             (!('caregiverId' in data) || (data.caregiverId is string && data.caregiverId.size() < 100));
+    }
+
+    function isValidTask(data) {
+      return hasOnlyAllowedFields(['caregiverId', 'elderlyId', 'title', 'type', 'scheduledTime', 'status', 'completedAt', 'dosage', 'instructions']) &&
+             hasRequiredFields(['caregiverId', 'elderlyId', 'title', 'type', 'scheduledTime', 'status']) &&
+             data.caregiverId is string && data.caregiverId.size() > 0 && data.caregiverId.size() < 100 &&
+             data.elderlyId is string && data.elderlyId.size() > 0 && data.elderlyId.size() < 100 &&
+             data.title is string && data.title.size() > 0 && data.title.size() < 200 &&
+             data.type in ['medicine', 'appointment', 'activity'] &&
+             isValidDateString(data.scheduledTime) &&
+             data.status in ['pending', 'completed', 'missed'] &&
+             (!('completedAt' in data) || isValidDateString(data.completedAt)) &&
+             (!('dosage' in data) || (data.dosage is string && data.dosage.size() < 100)) &&
+             (!('instructions' in data) || (data.instructions is string && data.instructions.size() < 500));
+    }
+
+    match /users/{userId} {
+      allow read: if isOwner(userId) || 
+                  (isAuthenticated() && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'caregiver' && resource.data.caregiverId == request.auth.uid) || 
+                  (isAuthenticated() && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'elderly' && resource.data.uid == get(/databases/$(database)/documents/users/$(request.auth.uid)).data.caregiverId);
+      
+      allow create: if isOwner(userId) && isValidUser(request.resource.data) && request.resource.data.uid == request.auth.uid;
+      
+      allow update: if isOwner(userId) && isValidUser(request.resource.data) && request.resource.data.uid == resource.data.uid && request.resource.data.role == resource.data.role;
+    }
+
+    match /tasks/{taskId} {
+      allow read: if isAuthenticated() && (resource.data.caregiverId == request.auth.uid || resource.data.elderlyId == request.auth.uid);
+      
+      allow create: if isAuthenticated() && 
+                    get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'caregiver' &&
+                    isValidTask(request.resource.data) && 
+                    request.resource.data.caregiverId == request.auth.uid;
+      
+      allow update: if isAuthenticated() && isValidTask(request.resource.data) && (
+                      (resource.data.caregiverId == request.auth.uid && request.resource.data.caregiverId == resource.data.caregiverId) ||
+                      (resource.data.elderlyId == request.auth.uid && 
+                       request.resource.data.caregiverId == resource.data.caregiverId &&
+                       request.resource.data.elderlyId == resource.data.elderlyId &&
+                       request.resource.data.title == resource.data.title &&
+                       request.resource.data.type == resource.data.type &&
+                       request.resource.data.scheduledTime == resource.data.scheduledTime &&
+                       (!('dosage' in resource.data) || request.resource.data.dosage == resource.data.dosage) &&
+                       (!('instructions' in resource.data) || request.resource.data.instructions == resource.data.instructions))
+                    );
+      
+      allow delete: if isAuthenticated() && resource.data.caregiverId == request.auth.uid;
+    }
+  }
+}

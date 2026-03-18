@@ -1,0 +1,44 @@
+{
+  "entities": {
+    "User": {
+      "title": "User",
+      "description": "A user of the application, either a caregiver or an elderly person.",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string", "description": "The user's unique ID." },
+        "role": { "type": "string", "enum": ["caregiver", "elderly"], "description": "The role of the user." },
+        "name": { "type": "string", "description": "The user's full name." },
+        "email": { "type": "string", "format": "email", "description": "The user's email address." },
+        "caregiverId": { "type": "string", "description": "The UID of the caregiver, if the user is an elderly person." }
+      },
+      "required": ["uid", "role", "name", "email"]
+    },
+    "Task": {
+      "title": "Task",
+      "description": "A task assigned to an elderly person by a caregiver.",
+      "type": "object",
+      "properties": {
+        "caregiverId": { "type": "string", "description": "The UID of the caregiver who created the task." },
+        "elderlyId": { "type": "string", "description": "The UID of the elderly person assigned to the task." },
+        "title": { "type": "string", "description": "The title or name of the task (e.g., Medicine name)." },
+        "type": { "type": "string", "enum": ["medicine", "appointment", "activity"], "description": "The type of task." },
+        "scheduledTime": { "type": "string", "format": "date-time", "description": "The scheduled time for the task." },
+        "status": { "type": "string", "enum": ["pending", "completed", "missed"], "description": "The current status of the task." },
+        "completedAt": { "type": "string", "format": "date-time", "description": "The time the task was completed." },
+        "dosage": { "type": "string", "description": "The dosage of the medicine, if applicable." },
+        "instructions": { "type": "string", "description": "Any additional instructions for the task." }
+      },
+      "required": ["caregiverId", "elderlyId", "title", "type", "scheduledTime", "status"]
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": { "$ref": "#/entities/User" },
+      "description": "Stores user profiles."
+    },
+    "/tasks/{taskId}": {
+      "schema": { "$ref": "#/entities/Task" },
+      "description": "Stores tasks assigned to elderly users."
+    }
+  }
+}

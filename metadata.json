@@ -1,0 +1,5 @@
+{
+  "name": "CareSync",
+  "description": "Remote Caregiver Assistant for Elderly Medication & Health Management",
+  "requestFramePermissions": ["microphone"]
+}

@@ -1,12 +1,17 @@
+🩺 CareSync
 
+CareSync is a smart caregiver assistant that helps families remotely manage the health of their loved ones. It sends timely reminders for medications, doctor visits, and daily activities, while allowing users to confirm completion with a single tap.
 
-## Run Locally
+Caregivers receive real-time updates and alerts for missed tasks, ensuring peace of mind even from a distance.
 
-**Prerequisites:**  Node.js
+🚀 Features
 
+Medication, appointment, and activity reminders
 
-1. Install dependencies:
-   `npm install`
-2. Set the `GEMINI_API_KEY` in [.env.local](.env.local) to your Gemini API key
-3. Run the app:
-   `npm run dev`
+Simple elderly-friendly interface (large buttons, audio alerts)
+
+One-tap “Done” confirmation
+
+Real-time notifications to caregivers
+
+Offline support with data sync
